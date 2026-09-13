@@ -99,19 +99,23 @@ export function createStandaloneTools({
   defer(() => {
     if (window.__godsEyeView === debug) delete window.__godsEyeView;
   });
-  const voiceCommands = initGevVoiceCommands({
-    placeSearch,
-    viewer,
-    styleManager,
-    dataManager,
-    sceneDirector,
-    annotations,
-  });
-  defer(() => {
-    voiceCommands.stop({ removeUi: true });
-    if (window.__gevVoiceCommands === voiceCommands)
-      delete window.__gevVoiceCommands;
-  });
+  const voiceCommands = import.meta.env.GEV_VOICE_ENABLED
+    ? initGevVoiceCommands({
+        placeSearch,
+        viewer,
+        styleManager,
+        dataManager,
+        sceneDirector,
+        annotations,
+      })
+    : null;
+  if (voiceCommands) {
+    defer(() => {
+      voiceCommands.stop({ removeUi: true });
+      if (window.__gevVoiceCommands === voiceCommands)
+        delete window.__gevVoiceCommands;
+    });
+  }
   debug.voiceCommands = voiceCommands;
   return { sceneDirector, annotations, voiceCommands };
 }

@@ -34,6 +34,12 @@ export default defineConfig(({ mode }) => {
   // request before the application or provider middleware can answer it.
   return {
     ...config,
+    define: {
+      ...config.define,
+      'import.meta.env.GEV_VOICE_ENABLED': JSON.stringify(
+        Boolean(String(process.env.OPENAI_API_KEY || '').trim()),
+      ),
+    },
     preview: { ...config.preview, allowedHosts: true },
   };
 });
