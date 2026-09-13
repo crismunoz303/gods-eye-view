@@ -16,7 +16,7 @@ export default defineConfig(({ mode }) => {
   const cloudAccessPlugins = process.env.GEV_ACCESS_KEY
     ? [accessGatePlugin()]
     : [];
-  return createBrowserViteConfig({
+  const config = createBrowserViteConfig({
     plugins: [
       ...cloudAccessPlugins,
       ...localProviderPlugins(),
@@ -27,4 +27,13 @@ export default defineConfig(({ mode }) => {
     host: process.env.HOST,
     port: process.env.PORT,
   });
+
+  // This entry point is only used by the protected standalone server. Railway
+  // assigns the public hostname after deployment, so Vite cannot know it while
+  // the image is built. The access gate still authenticates every non-health
+  // request before the application or provider middleware can answer it.
+  return {
+    ...config,
+    preview: { ...config.preview, allowedHosts: true },
+  };
 });
