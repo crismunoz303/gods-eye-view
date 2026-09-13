@@ -1,0 +1,54 @@
+name: Build unsigned iPhone IPA
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.19.0
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Build web app and sync iOS project
+        env:
+          GEV_SERVER_URL: ${{ vars.GEV_SERVER_URL }}
+          GEV_APP_ACCESS_KEY: ${{ secrets.GEV_ACCESS_KEY }}
+        run: |
+          test -n "$GEV_SERVER_URL" || { echo "Missing repository variable GEV_SERVER_URL"; exit 1; }
+          test -n "$GEV_APP_ACCESS_KEY" || { echo "Missing Actions secret GEV_ACCESS_KEY"; exit 1; }
+          npm run ios:sync
+
+      - name: Build unsigned device app
+        run: |
+          xcodebuild \
+            -project ios/App/App.xcodeproj \
+            -scheme App \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath ios/build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY=""
+
+      - name: Package IPA
+        run: |
+          mkdir -p package/Payload
+          cp -R ios/build/Build/Products/Release-iphoneos/App.app package/Payload/GodsEyeView.app
+          cd package
+          zip -qry ../GodsEyeView-unsigned.ipa Payload
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GodsEyeView-unsigned-ipa
+          path: GodsEyeView-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 30

@@ -2,7 +2,7 @@
   "name": "gods-eye-view",
   "private": true,
   "version": "0.1.1",
-  "description": "A real-time intelligence console for planet Earth \u2014 photorealistic 3D globe, live aircraft/ships/satellites/earthquakes/CCTV, and hands-free voice control. Runs in a browser.",
+  "description": "A real-time intelligence console for planet Earth — photorealistic 3D globe, live aircraft/ships/satellites/earthquakes/CCTV, and hands-free voice control. Runs in a browser.",
   "type": "module",
   "license": "MIT",
   "author": "Bilawal Sidhu",
@@ -43,7 +43,11 @@
     "test": "node scripts/run-unit-tests.mjs",
     "test:track": "node scripts/track-regression.mjs",
     "qa:map-source-tray": "node scripts/qa-map-source-tray.mjs",
-    "check:boundaries": "node scripts/check-package-boundaries.mjs"
+    "check:boundaries": "node scripts/check-package-boundaries.mjs",
+    "cloud:start": "node scripts/cloud-start.mjs",
+    "ios:assets": "node scripts/generate-ios-assets.mjs",
+    "ios:sync": "npm run build && npm run ios:assets && npx cap sync ios",
+    "ios:open": "npx cap open ios"
   },
   "dependencies": {
     "@mapbox/vector-tile": "^3.0.0",
@@ -51,7 +55,9 @@
     "egm96-universal": "^1.1.1",
     "mgrs": "^2.1.0",
     "pbf": "^5.1.2",
-    "satellite.js": "^6.0.2"
+    "satellite.js": "^6.0.2",
+    "@capacitor/core": "^8.5.2",
+    "@capacitor/ios": "^8.5.2"
   },
   "devDependencies": {
     "prettier": "3.9.6",
@@ -59,7 +65,9 @@
     "sharp": "^0.35.4",
     "vite": "^6.0.0",
     "vite-plugin-cesium": "^1.2.23",
-    "ws": "^8.21.0"
+    "ws": "^8.21.0",
+    "@capacitor/cli": "^8.5.2",
+    "typescript": "^7.0.2"
   },
   "exports": {
     "./infrastructure": "./src/data/infrastructure.js",
