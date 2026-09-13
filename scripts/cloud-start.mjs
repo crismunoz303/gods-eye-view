@@ -26,7 +26,7 @@ const child = spawn(
   [viteBin.pathname, 'preview', '--host', host, '--port', rawPort],
   {
     stdio: 'inherit',
-    env: process.env,
+    env: { ...process.env, HOST: host },
   },
 );
 

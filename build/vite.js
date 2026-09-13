@@ -8,15 +8,17 @@ export function createBrowserViteConfig({
   host = 'localhost',
   port = 4173,
 } = {}) {
+  const allowedHosts =
+    host === '0.0.0.0' || host === '::'
+      ? true
+      : ['localhost', '127.0.0.1', '.local'];
+
   return {
     plugins: [cesium(), ...plugins],
     server: {
       host: host || 'localhost',
       port: parseInt(port, 10) || 4173,
-      allowedHosts:
-        host === '0.0.0.0' || host === '::'
-          ? true
-          : ['localhost', '127.0.0.1', '.local'],
+      allowedHosts,
       fs: {
         deny: ['.env', '.env.*', '*.{crt,pem}', '**/.git/**', '**/ENVIRONMENT'],
       },
@@ -25,6 +27,11 @@ export function createBrowserViteConfig({
         'X-Frame-Options': 'DENY',
         'Content-Security-Policy': "frame-ancestors 'none'",
       },
+    },
+    preview: {
+      host: host || 'localhost',
+      port: parseInt(port, 10) || 4173,
+      allowedHosts,
     },
     define: {
       'import.meta.env.GOOGLE_MAPS_API_KEY': JSON.stringify(googleApiKey),
