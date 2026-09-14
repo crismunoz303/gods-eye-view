@@ -1,6 +1,5 @@
-import { bindClearLayersControl } from './ui/layers.js';
 import { createMapSourceControls } from './ui/mapSource.js';
-import { VisualEffects, STYLES, GLOBAL_POST_DEFAULTS, STYLE_PRESET_DEFAULTS, MILITARY_DETECTION_PRESET } from './ui/effects.js';
+import { VisualEffects, STYLES, GLOBAL_POST_DEFAULTS, STYLE_PRESET_DEFAULTS, MILITARY_DETECTION_PRESET, globalPostDefaultsForProfile } from './ui/effects.js';
 import { bindDisplayControls } from './ui/displayControls.js';
 import { bindApplicationShortcuts, createStyleParameters } from './ui/visualInput.js';
 import { layoutLeftPanelRail, layoutRightPanelRail } from './ui/panelRails.js';
@@ -2088,6 +2087,7 @@ export class StyleManager {
     this._globeResetHandler = null;
     this._clearSelectedLayersPromise = null;
     this._clearSelectedLayersManagerPromise = null;
+    this._clearSelectedLayersHandler = null;
     this._dataManager = null;
     this._cctvUnsubscribe = null;
     this._radioUnsubscribe = null;
@@ -3569,7 +3569,9 @@ export class StyleManager {
    * @returns {void}
    */
   _applyGlobalPostDefaults() {
-    const defaults = GLOBAL_POST_DEFAULTS;
+    const defaults = globalPostDefaultsForProfile(
+      this.viewer.__gevRenderProfile,
+    );
     if (typeof defaults.bloom?.intensity === 'number' && this._bloomSlider) {
       this._setBloomIntensity(clampBloomIntensity(defaults.bloom.intensity), { syncShare: false });
     }
@@ -8900,8 +8902,8 @@ export class StyleManager {
   /** Wire the top-center action that clears only manager-owned data layers. */
   _initClearSelectedLayersButton() {
     if (!this._clearSelectedLayersBtn) return;
-    this._clearLayersControl?.destroy();
-    this._clearLayersControl = bindClearLayersControl(this._clearSelectedLayersBtn, () => this.clearSelectedLayers());
+    this._clearSelectedLayersHandler = () => { void this.clearSelectedLayers(); };
+    this._clearSelectedLayersBtn.addEventListener('click', this._clearSelectedLayersHandler);
   }
 
   /**
@@ -8928,7 +8930,9 @@ export class StyleManager {
     this._preservePanelStateDuringLayerClear = true;
     this._syncContextModeButtons();
     this._userFacingContextNotificationTokens.add(notificationToken);
-    this._clearLayersControl?.setBusy(true);
+    this._clearSelectedLayersBtn.setAttribute('aria-disabled', 'true');
+    this._clearSelectedLayersBtn.setAttribute('aria-busy', 'true');
+    this._clearSelectedLayersBtn.setAttribute('aria-label', 'Clearing selected data layers');
 
     const managerOperation = this._dataManager.clearSelectedLayers({
       origin: 'user',
@@ -8960,7 +8964,9 @@ export class StyleManager {
         this._contextModeChanging = false;
         this._syncContextModeButtons();
       }
-      this._clearLayersControl?.setBusy(false);
+      this._clearSelectedLayersBtn.setAttribute('aria-disabled', 'false');
+      this._clearSelectedLayersBtn.setAttribute('aria-busy', 'false');
+      this._clearSelectedLayersBtn.setAttribute('aria-label', 'Clear selected data layers');
       this._preservePanelStateDuringLayerClear = false;
       this._clearSelectedLayersManagerPromise = null;
       this._clearSelectedLayersPromise = null;
@@ -9373,7 +9379,6 @@ export class StyleManager {
     this._applicationShortcuts?.destroy();
     this._displayControls?.destroy();
     this._mapSourceControls?.destroy();
-    this._clearLayersControl?.destroy();
     this._visualEffects.stop();
     this._styleParameters?.destroy();
     for (const control of this._panelDisclosureControls || []) control.destroy();
@@ -9463,7 +9468,10 @@ export class StyleManager {
       this._cockpitResetGlobeBtn?.removeEventListener('click', this._globeResetHandler);
       this._globeResetHandler = null;
     }
-
+    if (this._clearSelectedLayersBtn && this._clearSelectedLayersHandler) {
+      this._clearSelectedLayersBtn.removeEventListener('click', this._clearSelectedLayersHandler);
+      this._clearSelectedLayersHandler = null;
+    }
     this._cctvUnsubscribe?.();
     this._cctvUnsubscribe = null;
     this._commandDockTrayObserver?.disconnect?.();

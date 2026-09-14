@@ -11,11 +11,11 @@ test('iPhone receives the lower-cost rendering profile', () => {
     }),
     {
       mobile: true,
-      targetFrameRate: 30,
+      targetFrameRate: 24,
       msaaSamples: 1,
-      resolutionScale: 0.9,
+      resolutionScale: 0.7,
       preserveDrawingBuffer: false,
-      maximumScreenSpaceError: 24,
+      maximumScreenSpaceError: 32,
     },
   );
 });

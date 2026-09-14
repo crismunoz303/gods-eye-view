@@ -39,7 +39,7 @@ import {
   scopeMaskGeometry,
   setScopeMaskFeather,
 } from './scopeMask.js';
-import { ShareLinkManager } from './sharelink.js';
+import { ShareLinkManager, constrainShareStateForRenderProfile } from './sharelink.js';
 
 // Follow the UI wiring and its extracted preset definitions.
 const uiSource = fs.readFileSync(new URL('./ui.js', import.meta.url), 'utf8')
@@ -71,6 +71,35 @@ function managerForHash(hash) {
   };
   return new ShareLinkManager(viewer);
 }
+
+test('mobile share restore constrains expensive WebGL state without removing controls', () => {
+  const authored = {
+    bloom: true,
+    sharpen: true,
+    detectionMode: 'DENSE',
+    detectionDensity: 75,
+    scopeEnabled: true,
+  };
+
+  assert.equal(constrainShareStateForRenderProfile(authored, { mobile: false }), authored);
+  assert.deepEqual(constrainShareStateForRenderProfile(authored, { mobile: true }), {
+    bloom: false,
+    sharpen: false,
+    detectionMode: 'SPARSE',
+    detectionDensity: 25,
+    scopeEnabled: false,
+  });
+  assert.equal(authored.detectionMode, 'DENSE', 'the authored link is not mutated');
+});
+
+test('mobile share restore preserves an explicit detection-off choice', () => {
+  const restored = constrainShareStateForRenderProfile(
+    { detectionMode: 'OFF', detectionDensity: 75 },
+    { mobile: true },
+  );
+  assert.equal(restored.detectionMode, 'OFF');
+  assert.equal(restored.detectionDensity, 75);
+});
 
 // ---------------------------------------------------------------------------
 // 2. Scope feather — a subtle soft edge on a first run

@@ -4,4 +4,5 @@ export {
   GLOBAL_POST_DEFAULTS,
   STYLE_PRESET_DEFAULTS,
   MILITARY_DETECTION_PRESET,
+  globalPostDefaultsForProfile,
 } from './visualPresets.js';

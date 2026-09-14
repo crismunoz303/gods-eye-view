@@ -32,6 +32,22 @@ const SHARE_UI_STATE_PARAM = 'ui';
 const SHARE_STYLE_PARAMS_PARAM = 'sp';
 const SHARE_CREATED_AT_PARAM = 'at';
 
+/** Prevent expensive desktop-authored share state from crashing mobile WebGL. */
+export function constrainShareStateForRenderProfile(state, renderProfile) {
+  if (!state || !renderProfile?.mobile) return state;
+  const detectionOff = state.detectionMode === 'OFF';
+  return {
+    ...state,
+    bloom: false,
+    sharpen: false,
+    detectionMode: detectionOff ? 'OFF' : 'SPARSE',
+    detectionDensity: detectionOff
+      ? state.detectionDensity
+      : Math.min(25, state.detectionDensity),
+    scopeEnabled: false,
+  };
+}
+
 const SHARE_PANEL_STATE_REGISTRY = Object.freeze([
   { id: 'control-panel', token: 'c', pinnable: true },
   { id: 'location-bar', token: 'l', pinnable: true },
@@ -176,7 +192,7 @@ export class ShareLinkManager {
     );
     const style = URL_TO_STYLE[params.get('style')] || 'normal';
     const decodedLayerState = decodeLayerStateParams(params);
-    const state = {
+    const parsedState = {
       lat,
       lon,
       alt: parseOr(params.get('alt'), 800),
@@ -232,6 +248,10 @@ export class ShareLinkManager {
       panelState: decodePanelStateParams(params),
       sharedAtMs: decodeShareCreatedAtMs(params),
     };
+    const state = constrainShareStateForRenderProfile(
+      parsedState,
+      this.viewer?.__gevRenderProfile,
+    );
     state.restoreAuthority = {
       visual: this._restoreAuthority.visual,
       map: this._restoreAuthority.map,

@@ -11,10 +11,10 @@ export function resolveRenderProfile({
 
   return Object.freeze({
     mobile,
-    targetFrameRate: mobile ? 30 : 60,
+    targetFrameRate: mobile ? 24 : 60,
     msaaSamples: mobile ? 1 : 4,
-    resolutionScale: mobile ? 0.9 : 1,
+    resolutionScale: mobile ? 0.7 : 1,
     preserveDrawingBuffer: !mobile,
-    maximumScreenSpaceError: mobile ? 24 : 16,
+    maximumScreenSpaceError: mobile ? 32 : 16,
   });
 }

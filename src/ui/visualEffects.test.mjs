@@ -5,6 +5,7 @@ import {
   GLOBAL_POST_DEFAULTS,
   STYLE_PRESET_DEFAULTS,
   MILITARY_DETECTION_PRESET,
+  globalPostDefaultsForProfile,
 } from './visualPresets.js';
 
 function fixture() {
@@ -246,4 +247,16 @@ test('existing baseline and military presets keep one detection default', () => 
     );
   }
   assert.equal(STYLE_PRESET_DEFAULTS.normal, undefined);
+});
+
+test('mobile starts with a lower-cost post-processing baseline', () => {
+  const desktop = globalPostDefaultsForProfile({ mobile: false });
+  const mobile = globalPostDefaultsForProfile({ mobile: true });
+
+  assert.equal(desktop, GLOBAL_POST_DEFAULTS);
+  assert.equal(mobile.sharpen.enabled, false);
+  assert.equal(mobile.detectionMode, 'SPARSE');
+  assert.equal(mobile.detectionDensity, 25);
+  assert.equal(GLOBAL_POST_DEFAULTS.sharpen.enabled, true);
+  assert.equal(GLOBAL_POST_DEFAULTS.detectionMode, 'DENSE');
 });

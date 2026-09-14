@@ -65,6 +65,17 @@ export const GLOBAL_POST_DEFAULTS = {
   celestialRing: false,
 };
 
+/** Keep the complete control surface while starting constrained devices safely. */
+export function globalPostDefaultsForProfile(renderProfile) {
+  if (!renderProfile?.mobile) return GLOBAL_POST_DEFAULTS;
+  return {
+    ...GLOBAL_POST_DEFAULTS,
+    sharpen: { ...GLOBAL_POST_DEFAULTS.sharpen, enabled: false },
+    detectionMode: 'SPARSE',
+    detectionDensity: 25,
+  };
+}
+
 // Tactical style defaults applied when users select military style presets.
 export const STYLE_PRESET_DEFAULTS = {
   retro: {
