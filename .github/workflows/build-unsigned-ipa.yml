@@ -2,6 +2,12 @@ name: Build unsigned iPhone IPA
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - capacitor.config.ts
+      - .github/workflows/build-unsigned-ipa.yml
+      - ios/**
 
 jobs:
   build:
@@ -20,11 +26,9 @@ jobs:
 
       - name: Build web app and sync iOS project
         env:
-          GEV_SERVER_URL: ${{ vars.GEV_SERVER_URL }}
-          GEV_APP_ACCESS_KEY: ${{ secrets.GEV_ACCESS_KEY }}
+          GEV_SERVER_URL: https://gods-eye-view-kykn.onrender.com
         run: |
           test -n "$GEV_SERVER_URL" || { echo "Missing repository variable GEV_SERVER_URL"; exit 1; }
-          test -n "$GEV_APP_ACCESS_KEY" || { echo "Missing Actions secret GEV_ACCESS_KEY"; exit 1; }
           npm run ios:sync
 
       - name: Build unsigned device app

@@ -9,11 +9,15 @@ if (remoteUrl && !remoteUrl.startsWith('https://')) {
   );
 }
 
-if (remoteUrl && accessKey.length < 32) {
+if (remoteUrl && accessKey && accessKey.length < 32) {
   throw new Error(
     'GEV_APP_ACCESS_KEY must contain at least 32 characters for a cloud iPhone build.',
   );
 }
+
+const serverUrl = accessKey
+  ? `${remoteUrl}/?app_access=${encodeURIComponent(accessKey)}`
+  : `${remoteUrl}/`;
 
 const config: CapacitorConfig = {
   appId: 'com.crismunoz.godseyeview',
@@ -32,7 +36,7 @@ const config: CapacitorConfig = {
   ...(remoteUrl
     ? {
         server: {
-          url: `${remoteUrl}/?app_access=${encodeURIComponent(accessKey)}`,
+          url: serverUrl,
           cleartext: false,
           allowNavigation: [new URL(remoteUrl).hostname],
           errorPath: 'offline.html',
