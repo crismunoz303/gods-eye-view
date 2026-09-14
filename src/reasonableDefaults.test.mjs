@@ -72,35 +72,6 @@ function managerForHash(hash) {
   return new ShareLinkManager(viewer);
 }
 
-test('mobile share restore constrains expensive WebGL state without removing controls', () => {
-  const authored = {
-    bloom: true,
-    sharpen: true,
-    detectionMode: 'DENSE',
-    detectionDensity: 75,
-    scopeEnabled: true,
-  };
-
-  assert.equal(constrainShareStateForRenderProfile(authored, { mobile: false }), authored);
-  assert.deepEqual(constrainShareStateForRenderProfile(authored, { mobile: true }), {
-    bloom: false,
-    sharpen: false,
-    detectionMode: 'SPARSE',
-    detectionDensity: 25,
-    scopeEnabled: false,
-  });
-  assert.equal(authored.detectionMode, 'DENSE', 'the authored link is not mutated');
-});
-
-test('mobile share restore preserves an explicit detection-off choice', () => {
-  const restored = constrainShareStateForRenderProfile(
-    { detectionMode: 'OFF', detectionDensity: 75 },
-    { mobile: true },
-  );
-  assert.equal(restored.detectionMode, 'OFF');
-  assert.equal(restored.detectionDensity, 75);
-});
-
 // ---------------------------------------------------------------------------
 // 2. Scope feather — a subtle soft edge on a first run
 // ---------------------------------------------------------------------------
@@ -307,4 +278,34 @@ test('a share link that carries detection OFF still restores OFF', () => {
   const dense = managerForHash('#lat=10&lon=20&dm=DENSE&dd=75').parseInitialHash();
   assert.equal(dense.detectionMode, 'DENSE');
   assert.equal(dense.detectionDensity, 75);
+});
+
+
+test('mobile share restore constrains expensive WebGL state without removing controls', () => {
+  const authored = {
+    bloom: true,
+    sharpen: true,
+    detectionMode: 'DENSE',
+    detectionDensity: 75,
+    scopeEnabled: true,
+  };
+
+  assert.equal(constrainShareStateForRenderProfile(authored, { mobile: false }), authored);
+  assert.deepEqual(constrainShareStateForRenderProfile(authored, { mobile: true }), {
+    bloom: false,
+    sharpen: false,
+    detectionMode: 'SPARSE',
+    detectionDensity: 25,
+    scopeEnabled: false,
+  });
+  assert.equal(authored.detectionMode, 'DENSE', 'the authored link is not mutated');
+});
+
+test('mobile share restore preserves an explicit detection-off choice', () => {
+  const restored = constrainShareStateForRenderProfile(
+    { detectionMode: 'OFF', detectionDensity: 75 },
+    { mobile: true },
+  );
+  assert.equal(restored.detectionMode, 'OFF');
+  assert.equal(restored.detectionDensity, 75);
 });

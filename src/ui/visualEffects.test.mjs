@@ -249,6 +249,7 @@ test('existing baseline and military presets keep one detection default', () => 
   assert.equal(STYLE_PRESET_DEFAULTS.normal, undefined);
 });
 
+
 test('mobile starts with a lower-cost post-processing baseline', () => {
   const desktop = globalPostDefaultsForProfile({ mobile: false });
   const mobile = globalPostDefaultsForProfile({ mobile: true });
