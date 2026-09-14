@@ -20,6 +20,8 @@
   "src/app/mapLifecycle.test.mjs",
   "src/app/startupCamera.test.mjs",
   "src/app/viewer.js",
+  "src/app/renderProfile.js",
+  "src/app/renderProfile.test.mjs",
   "src/standalone/application.js",
   "src/standalone/controls.js",
   "src/standalone/data.js",
@@ -153,11 +155,5 @@
   "src/ui/mapSourceControls.js",
   "src/ui/mapSourceControls.test.mjs",
   "src/mapStackChips.js",
-  "scripts/qa-map-source-controls.mjs",
-  "src/ui/layers.js",
-  "src/ui/layerPanel.js",
-  "src/ui/clearLayersControl.js",
-  "scripts/qa-layer-panel.mjs",
-  "src/loadingFeedback.js",
-  "src/data/installationFeedback.js"
+  "scripts/qa-map-source-controls.mjs"
 ]
