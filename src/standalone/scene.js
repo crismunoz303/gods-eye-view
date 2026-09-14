@@ -59,6 +59,14 @@ export async function createStandaloneScene({
   });
   signal.throwIfAborted();
   if (tileset) {
+    const renderProfile = viewer.__gevRenderProfile;
+    if (renderProfile?.mobile) {
+      tileset.maximumScreenSpaceError = Math.max(
+        Number(tileset.maximumScreenSpaceError) || 0,
+        renderProfile.maximumScreenSpaceError,
+      );
+      tileset.dynamicScreenSpaceError = true;
+    }
     viewer.scene.primitives.add(tileset);
     // NOTE: Cesium World Terrain intentionally disabled — conflicts with Google 3D Tiles at high zoom.
     // Google Photorealistic 3D Tiles provide their own terrain/elevation.

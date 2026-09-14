@@ -9683,3 +9683,10 @@ body.scene-playback-mode #key-setup {
   border-color: rgba(255, 170, 150, 0.65);
   outline: none;
 }
+
+/* iOS must composite these surfaces over a moving WebGL globe. Removing only
+   backdrop sampling keeps the glass styling while avoiding repeated blur passes. */
+html.gev-mobile-performance * {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
