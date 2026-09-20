@@ -48,11 +48,11 @@ jobs:
           mkdir -p package/Payload
           cp -R ios/build/Build/Products/Release-iphoneos/App.app package/Payload/GodsEyeView.app
           cd package
-          zip -qry ../GodsEyeView-unsigned.ipa Payload
+          zip -qry ../GodsEyeView-LocationFix.ipa Payload
 
       - uses: actions/upload-artifact@v4
         with:
-          name: GodsEyeView-unsigned-ipa
-          path: GodsEyeView-unsigned.ipa
+          name: GodsEyeView-LocationFix
+          path: GodsEyeView-LocationFix.ipa
           if-no-files-found: error
           retention-days: 30
