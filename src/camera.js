@@ -1,4 +1,7 @@
 import * as Cesium from 'cesium';
+import { Capacitor, registerPlugin } from '@capacitor/core';
+
+const NativeLocation = registerPlugin('NativeLocation');
 
 /**
  * Camera presets for notable locations.
@@ -81,17 +84,110 @@ function storeDeviceLocation(storage, coordinates, now = Date.now()) {
  * when the provider is temporarily unavailable or times out; an explicit
  * permission denial never falls back to cached coordinates.
  */
-export function requestDeviceLocation({
-  geolocation = globalThis.navigator?.geolocation,
-  storage = globalThis.localStorage,
-  timeout = 8000,
-  maximumAge = 30000,
-  enableHighAccuracy = true,
-  now = () => Date.now(),
-} = {}) {
+export async function requestDeviceLocation(options = {}) {
+  const {
+    geolocation = globalThis.navigator?.geolocation,
+    storage = globalThis.localStorage,
+    timeout = 8000,
+    maximumAge = 30000,
+    enableHighAccuracy = true,
+    now = () => Date.now(),
+  } = options;
+
+  const useNativeIos =
+    options.geolocation === undefined &&
+    Capacitor.isNativePlatform() &&
+    Capacitor.getPlatform() === 'ios';
+
+  if (useNativeIos) {
+    const nativeResult = await new Promise((resolve) => {
+      let settled = false;
+      const finish = (value) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(deadline);
+        resolve(value);
+      };
+
+      const deadline = setTimeout(
+        () => finish({ ok: false, reason: 'timeout' }),
+        Math.max(2500, timeout + 1500),
+      );
+
+      NativeLocation.getCurrentPosition({ timeout })
+        .then((position) => {
+          const latitude = Number(position?.latitude);
+          const longitude = Number(position?.longitude);
+          const accuracy = Number(position?.accuracy);
+          if (!isValidDeviceCoordinate(latitude, longitude)) {
+            finish({ ok: false, reason: 'invalid' });
+            return;
+          }
+          const coordinates = {
+            latitude,
+            longitude,
+            accuracy: Number.isFinite(accuracy) ? accuracy : null,
+          };
+          storeDeviceLocation(storage, coordinates, now());
+          finish({ ok: true, source: 'live', ...coordinates });
+        })
+        .catch((error) => {
+          const code = String(error?.code || '');
+          if (code === 'LOCATION_DENIED') {
+            finish({ ok: false, reason: 'denied', code });
+            return;
+          }
+          finish({
+            ok: false,
+            reason: code === 'LOCATION_TIMEOUT' ? 'timeout' : 'unavailable',
+            code: code || null,
+          });
+        });
+    });
+
+    if (nativeResult.ok || nativeResult.reason === 'denied') {
+      return nativeResult;
+    }
+
+    const cached = readCachedDeviceLocation(storage, now());
+    if (cached) {
+      return {
+        ok: true,
+        source: 'cached',
+        latitude: cached.latitude,
+        longitude: cached.longitude,
+        accuracy: cached.accuracy ?? null,
+      };
+    }
+    return nativeResult;
+  }
+
   return new Promise((resolve) => {
+    let settled = false;
+    const finish = (value) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(deadline);
+      resolve(value);
+    };
+
+    const deadline = setTimeout(() => {
+      const cached = readCachedDeviceLocation(storage, now());
+      if (cached) {
+        finish({
+          ok: true,
+          source: 'cached',
+          latitude: cached.latitude,
+          longitude: cached.longitude,
+          accuracy: cached.accuracy ?? null,
+        });
+        return;
+      }
+      finish({ ok: false, reason: 'timeout', code: 3 });
+    }, Math.max(2500, timeout + 1500));
+
     if (!geolocation?.getCurrentPosition) {
-      resolve({ ok: false, reason: 'unsupported' });
+      finish({ ok: false, reason: 'unsupported' });
       return;
     }
 
@@ -101,7 +197,7 @@ export function requestDeviceLocation({
         const longitude = Number(position?.coords?.longitude);
         const accuracy = Number(position?.coords?.accuracy);
         if (!isValidDeviceCoordinate(latitude, longitude)) {
-          resolve({ ok: false, reason: 'invalid' });
+          finish({ ok: false, reason: 'invalid' });
           return;
         }
         const coordinates = {
@@ -110,17 +206,17 @@ export function requestDeviceLocation({
           accuracy: Number.isFinite(accuracy) ? accuracy : null,
         };
         storeDeviceLocation(storage, coordinates, now());
-        resolve({ ok: true, source: 'live', ...coordinates });
+        finish({ ok: true, source: 'live', ...coordinates });
       },
       (error) => {
         const code = Number(error?.code);
         if (code === 1) {
-          resolve({ ok: false, reason: 'denied', code });
+          finish({ ok: false, reason: 'denied', code });
           return;
         }
         const cached = readCachedDeviceLocation(storage, now());
         if (cached) {
-          resolve({
+          finish({
             ok: true,
             source: 'cached',
             latitude: cached.latitude,
@@ -129,7 +225,7 @@ export function requestDeviceLocation({
           });
           return;
         }
-        resolve({
+        finish({
           ok: false,
           reason: code === 3 ? 'timeout' : 'unavailable',
           code: Number.isFinite(code) ? code : null,
@@ -139,7 +235,6 @@ export function requestDeviceLocation({
     );
   });
 }
-
 /** Put the full globe on screen when device location cannot be used. */
 export function setNeutralGlobeView(viewer) {
   if (!viewer || viewer.isDestroyed?.()) return;
