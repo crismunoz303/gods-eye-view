@@ -8,6 +8,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         guard let windowScene = scene as? UIWindowScene else { return }
 
         window = UIWindow(windowScene: windowScene)
+        // Register app-local native bridges before the web application starts.
         window?.rootViewController = AppBridgeViewController()
         window?.makeKeyAndVisible()
 
