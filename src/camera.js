@@ -2,7 +2,7 @@ import * as Cesium from 'cesium';
 
 /**
  * Camera presets for notable locations.
- * Phase 1 default: fly to Austin, TX on load.
+ * Named camera presets remain available, but startup location is device-driven.
  */
 export const CAMERA_PRESETS = {
   austin: {
@@ -30,6 +30,187 @@ export const CAMERA_PRESETS = {
     },
   },
 };
+
+
+const DEVICE_LOCATION_STORAGE_KEY = 'gev:last-device-location:v1';
+const DEVICE_LOCATION_CACHE_MAX_AGE_MS = 6 * 60 * 60 * 1000;
+
+function isValidDeviceCoordinate(latitude, longitude) {
+  return (
+    Number.isFinite(latitude) &&
+    Number.isFinite(longitude) &&
+    latitude >= -90 &&
+    latitude <= 90 &&
+    longitude >= -180 &&
+    longitude <= 180
+  );
+}
+
+function readCachedDeviceLocation(storage, now = Date.now()) {
+  if (!storage) return null;
+  try {
+    const parsed = JSON.parse(storage.getItem(DEVICE_LOCATION_STORAGE_KEY) || 'null');
+    if (
+      !parsed ||
+      !isValidDeviceCoordinate(parsed.latitude, parsed.longitude) ||
+      !Number.isFinite(parsed.timestamp) ||
+      now - parsed.timestamp > DEVICE_LOCATION_CACHE_MAX_AGE_MS
+    ) {
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function storeDeviceLocation(storage, coordinates, now = Date.now()) {
+  if (!storage) return;
+  try {
+    storage.setItem(
+      DEVICE_LOCATION_STORAGE_KEY,
+      JSON.stringify({ ...coordinates, timestamp: now }),
+    );
+  } catch {
+    // Storage is optional. Geolocation still works without it.
+  }
+}
+
+/**
+ * Ask the current device for its location. A recent cached fix is used only
+ * when the provider is temporarily unavailable or times out; an explicit
+ * permission denial never falls back to cached coordinates.
+ */
+export function requestDeviceLocation({
+  geolocation = globalThis.navigator?.geolocation,
+  storage = globalThis.localStorage,
+  timeout = 8000,
+  maximumAge = 30000,
+  enableHighAccuracy = true,
+  now = () => Date.now(),
+} = {}) {
+  return new Promise((resolve) => {
+    if (!geolocation?.getCurrentPosition) {
+      resolve({ ok: false, reason: 'unsupported' });
+      return;
+    }
+
+    geolocation.getCurrentPosition(
+      (position) => {
+        const latitude = Number(position?.coords?.latitude);
+        const longitude = Number(position?.coords?.longitude);
+        const accuracy = Number(position?.coords?.accuracy);
+        if (!isValidDeviceCoordinate(latitude, longitude)) {
+          resolve({ ok: false, reason: 'invalid' });
+          return;
+        }
+        const coordinates = {
+          latitude,
+          longitude,
+          accuracy: Number.isFinite(accuracy) ? accuracy : null,
+        };
+        storeDeviceLocation(storage, coordinates, now());
+        resolve({ ok: true, source: 'live', ...coordinates });
+      },
+      (error) => {
+        const code = Number(error?.code);
+        if (code === 1) {
+          resolve({ ok: false, reason: 'denied', code });
+          return;
+        }
+        const cached = readCachedDeviceLocation(storage, now());
+        if (cached) {
+          resolve({
+            ok: true,
+            source: 'cached',
+            latitude: cached.latitude,
+            longitude: cached.longitude,
+            accuracy: cached.accuracy ?? null,
+          });
+          return;
+        }
+        resolve({
+          ok: false,
+          reason: code === 3 ? 'timeout' : 'unavailable',
+          code: Number.isFinite(code) ? code : null,
+        });
+      },
+      { enableHighAccuracy, timeout, maximumAge },
+    );
+  });
+}
+
+/** Put the full globe on screen when device location cannot be used. */
+export function setNeutralGlobeView(viewer) {
+  if (!viewer || viewer.isDestroyed?.()) return;
+  viewer.camera.cancelFlight?.();
+  viewer.camera.setView({
+    destination: Cesium.Cartesian3.fromDegrees(-20, 15, 22000000),
+    orientation: {
+      heading: 0,
+      pitch: Cesium.Math.toRadians(-90),
+      roll: 0,
+    },
+  });
+}
+
+/**
+ * Fly from an overhead acquisition view to a useful local oblique view.
+ * Returns a cleanup function that cancels an in-progress flight.
+ */
+export function flyToCoordinates(
+  viewer,
+  { longitude, latitude, altitude = 900, duration = 3.2 } = {},
+) {
+  if (
+    !viewer ||
+    viewer.isDestroyed?.() ||
+    !isValidDeviceCoordinate(Number(latitude), Number(longitude))
+  ) {
+    return () => {};
+  }
+
+  const lat = Number(latitude);
+  const lon = Number(longitude);
+  viewer.camera.cancelFlight?.();
+  viewer.camera.setView({
+    destination: Cesium.Cartesian3.fromDegrees(lon, lat, 24000),
+    orientation: {
+      heading: 0,
+      pitch: Cesium.Math.toRadians(-90),
+      roll: 0,
+    },
+  });
+
+  viewer.camera.flyTo({
+    destination: Cesium.Cartesian3.fromDegrees(lon, lat, altitude),
+    orientation: {
+      heading: Cesium.Math.toRadians(15),
+      pitch: Cesium.Math.toRadians(-34),
+      roll: 0,
+    },
+    duration,
+    easingFunction: Cesium.EasingFunction.CUBIC_IN_OUT,
+  });
+
+  return () => {
+    if (!viewer.isDestroyed?.()) viewer.camera.cancelFlight?.();
+  };
+}
+
+/**
+ * Resolve this device's location and move the globe there. Shared-view startup
+ * bypasses this entirely so a shared URL always restores the shared camera.
+ */
+export async function flyToDeviceLocation(viewer, options = {}) {
+  const result = await requestDeviceLocation(options);
+  if (!result.ok) {
+    setNeutralGlobeView(viewer);
+    return { ...result, cancel: () => {} };
+  }
+  const cancel = flyToCoordinates(viewer, result);
+  return { ...result, cancel };
+}
 
 /**
  * Fly the camera to a preset location with a smooth animation.
