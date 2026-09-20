@@ -26,6 +26,8 @@
 	<true/>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>God's Eye View uses the microphone when you choose voice control.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>God's Eye View uses your location to open the globe at your current position when you launch the app.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
