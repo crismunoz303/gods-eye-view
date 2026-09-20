@@ -1,9 +1,9 @@
 import { StyleManager } from '../ui.js';
-import { flyToAustin } from '../camera.js';
+import { flyToDeviceLocation } from '../camera.js';
 import { initCockpitCloudEffects } from '../cockpitCloudEffects.js';
 
 /** Construct the existing controls and camera presentation. */
-export function createStandaloneControls({
+export async function createStandaloneControls({
   scene: { viewer, mapStackController },
   loaderStatus,
   placeSearch,
@@ -24,10 +24,24 @@ export function createStandaloneControls({
   const cockpitCloudEffects = initCockpitCloudEffects(viewer);
   defer(() => cockpitCloudEffects?.destroy());
 
-  // If no share link state, do default fly-to Austin
+  // Shared URLs own their camera. Normal launches resolve this device's
+  // current location instead of falling back to a hard-coded city.
   if (!styleManager.hasShareState) {
-    loaderStatus.textContent = 'Flying to Austin, TX...';
-    defer(flyToAustin(viewer));
+    loaderStatus.textContent = 'Finding your current location...';
+    const locationFlight = await flyToDeviceLocation(viewer, { timeout: 8000 });
+    defer(locationFlight.cancel);
+    if (locationFlight.ok) {
+      loaderStatus.textContent =
+        locationFlight.source === 'live'
+          ? 'Flying to your current location...'
+          : 'Location temporarily unavailable — using your recent location...';
+    } else if (locationFlight.reason === 'denied') {
+      loaderStatus.textContent =
+        'Location permission is off — starting with the full globe...';
+    } else {
+      loaderStatus.textContent =
+        'Current location unavailable — starting with the full globe...';
+    }
   } else {
     loaderStatus.textContent = 'Restoring shared view...';
   }
