@@ -24,7 +24,6 @@ test('teardown before the initial camera delay prevents a late flight', (t) => {
   assert.equal(cancelled, 1);
 });
 
-
 function memoryStorage(initial = {}) {
   const values = new Map(Object.entries(initial));
   return {
@@ -44,7 +43,7 @@ test('device geolocation becomes the startup camera source', async () => {
       getCurrentPosition(success) {
         success({
           coords: {
-            latitude: 34.0,
+            latitude: 34,
             longitude: -118.2,
             accuracy: 9,
           },
@@ -57,7 +56,7 @@ test('device geolocation becomes the startup camera source', async () => {
 
   assert.equal(result.ok, true);
   assert.equal(result.source, 'live');
-  assert.equal(result.latitude, 34.0);
+  assert.equal(result.latitude, 34);
   assert.equal(result.longitude, -118.2);
   assert.equal(result.accuracy, 9);
 });
